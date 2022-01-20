@@ -34,14 +34,15 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   const addProduct = async (productId: number) => {
     try {
-      let cartProduct = cart.find(product => product.id === productId);
+      const updatedCart = [...cart];
+      let cartProduct = updatedCart.find(product => product.id === productId);
 
-      if (!await hasAvailableStock(productId, cartProduct ? cartProduct.amount + 1 : 1)) {
+      const currentAmount = cartProduct ? cartProduct.amount : 0;
+
+      if (!await hasAvailableStock(productId, currentAmount + 1)) {
         toast.error('Quantidade solicitada fora de estoque');
         return;
       }
-
-      let newCart: Product[];
 
       if (!cartProduct) {
         // Fetches the product
@@ -52,21 +53,15 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
           amount: 1
         };
 
-        newCart = [...cart, cartProduct]
+        updatedCart.push(cartProduct);
       }
       else
       {
-        const index = cart.indexOf(cartProduct);
-
-        newCart = [
-          ...cart.slice(0, index),
-          { ...cartProduct, amount: cartProduct.amount + 1 },
-          ...cart.slice(index + 1)
-        ];
+        cartProduct.amount += 1;
       }
 
-      updateLocalStorage(newCart);
-      setCart(newCart);
+      updateLocalStorage(updatedCart);
+      setCart(updatedCart);
     } catch {
       toast.error('Erro na adição do produto');
     }
@@ -74,13 +69,16 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   const removeProduct = (productId: number) => {
     try {
-      if (!cart.some(product => product.id === productId))
+      const updatedCart = [...cart];
+      const index = updatedCart.findIndex(product => product.id === productId);
+
+      if (index < 0)
         throw new Error();
 
-      const newCart = cart.filter(product => product.id !== productId);
+      updatedCart.splice(index, 1);
 
-      updateLocalStorage(newCart);
-      setCart(newCart);
+      updateLocalStorage(updatedCart);
+      setCart(updatedCart);
     } catch {
       toast.error('Erro na remoção do produto');
     }
@@ -99,19 +97,16 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
         return;
       }
 
-      const index = cart.findIndex(product => product.id === productId);
+      const updatedCart = [...cart];
+      const cartProduct = updatedCart.find(product => product.id === productId);
 
-      if (index < 0)
+      if (!cartProduct)
         throw new Error();
 
-      let newCart = [
-        ...cart.slice(0, index),
-        { ...cart[index], amount },
-        ...cart.slice(index + 1, 0)
-      ];
+      cartProduct.amount = amount;
 
-      updateLocalStorage(newCart);
-      setCart(newCart);
+      updateLocalStorage(updatedCart);
+      setCart(updatedCart);
     } catch {
       toast.error('Erro na alteração de quantidade do produto');
     }
